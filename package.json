@@ -3,15 +3,18 @@
 	"version": "0.0.1",
 	"engines": {
 		"node": "0.10.x",
-		"npm":  "1.2.x"
+		"npm": "1.2.x"
 	},
-
 	"dependencies": {
 		"express": "2.5.8",
-		"underscore": ">=1.4.2",
+		"fluent-ffmpeg": "^2.1.3",
 		"request": "2.9.x",
-		"zencoder": "0.2.0",
 		"s3": "0.1.1",
-		"jasmine-node": ">=1.7.1"
+		"underscore": ">=1.4.2",
+		"zencoder": "0.2.0"
+	},
+	"devDependencies": {
+		"jasmine-node": "^3.0.0",
+		"sinon": "^21.0.0"
 	}
 }

@@ -9,3 +9,12 @@ exports.s3 = {
 exports.zencoder = {
 	token : 'your_Zencoder_Token'
 }
+
+// Default video processor ('zencoder' or 'ffmpeg')
+// This can be overridden by a query parameter in the upload request
+exports.defaultProcessor = 'zencoder';
+
+// FFmpeg specific configurations (if any needed in the future)
+// exports.ffmpeg = {
+//     binaryPath: '/usr/bin/ffmpeg' // Example if not in PATH
+// };
