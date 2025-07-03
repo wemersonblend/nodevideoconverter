@@ -52,7 +52,14 @@ describe('VideoProcessor', function() {
         it('should call FfmpegStrategy.process with videoInfo', function(done) {
             const ffmpegProcessStub = sinon.stub(FfmpegStrategy.prototype, 'process').resolves({ jobId: 'ffmpeg123' });
 
-            const ffmpegStrategy = new FfmpegStrategy();
+            // Mock S3 client to be passed to FfmpegStrategy constructor
+            const mockS3Client = {
+                upload: sinon.stub().returnsThis(), // Simplistic mock
+                download: sinon.stub().returnsThis(),
+                on: sinon.stub()
+            };
+
+            const ffmpegStrategy = new FfmpegStrategy(mockS3Client);
             const videoProcessor = new VideoProcessor(ffmpegStrategy);
 
             videoProcessor.process(videoInfo)
@@ -177,10 +184,14 @@ describe('FfmpegStrategy', function() {
     });
 
     it('should attempt to process video (conceptual test)', function(done) {
-        const strategy = new FfmpegStrategy();
+        const mockS3Client = {
+            upload: sinon.stub().callsFake(() => ({ on: (event, cb) => { if(event === 'end') cb(); return {on: sinon.stub()}; } })),
+            download: sinon.stub().callsFake(() => ({ on: (event, cb) => { if(event === 'end') cb(); return {on: sinon.stub()}; } }))
+        };
+        const strategy = new FfmpegStrategy(mockS3Client);
 
-        // Since FfmpegStrategy creates its own s3 client internally from the 's3' module,
-        // proper mocking would involve proxyquire or similar.
+        // S3 client is now injected, so direct mocking of its methods on the instance is feasible if needed,
+        // but the stubs for fluent-ffmpeg and fs are more critical for this unit test.
         // For this conceptual test, we'll mock specific methods if they were on the strategy instance's client.
         // Let's assume the s3 client is `strategy.s3Client` for mocking purposes (this is NOT in the code)
         // This part of the test will likely not work as expected without deeper mocking tools.

@@ -1,24 +1,29 @@
 const ffmpeg = require('fluent-ffmpeg');
-const s3 = require('s3');
+// s3 require removed from here if client is injected
 const fs = require('fs');
 const path = require('path');
-const config = require('./config'); // Assuming config file exists
+const config = require('./config'); // Still needed for bucket name if not passed with client
 
-// Configure S3 client for FFmpeg strategy (could be shared if refactored)
-const s3Client = s3.createClient({
-    key: config.s3.key,
-    secret: config.s3.secret,
-    bucket: config.s3.bucket
-});
+// s3Client will be passed in constructor
+// const s3 = require('s3');
+// const s3Client = s3.createClient({
+//     key: config.s3.key,
+//     secret: config.s3.secret,
+//     bucket: config.s3.bucket
+// });
 
 class FfmpegStrategy {
-    constructor() {
+    constructor(s3ClientInstance) {
+        if (!s3ClientInstance) {
+            throw new Error("FfmpegStrategy requires an S3 client instance.");
+        }
+        this.s3Client = s3ClientInstance;
         // FFmpeg path can be configured if not in system PATH
-        // ffmpeg.setFfmpegPath('/path/to/ffmpeg');
+        // ffmpeg.setFfmpegPath(config.ffmpegPath || '/path/to/ffmpeg');
     }
 
     process(videoInfo) {
-        const { fileName, inFilePath } = videoInfo; // videoName is essentially fileName
+        const { fileName, inFilePath } = videoInfo;
         const baseFileName = path.basename(fileName, path.extname(fileName));
         const tmpDir = 'tmp_ffmpeg_processing';
         const localInputPath = path.join(tmpDir, fileName);
@@ -32,7 +37,7 @@ class FfmpegStrategy {
 
                 // 1. Download the file from S3 to a temporary local path
                 console.log(`FFMPEG: Downloading s3://${config.s3.bucket}/${inFilePath} to ${localInputPath}`);
-                const downloader = s3Client.download(inFilePath, localInputPath);
+                const downloader = this.s3Client.download(inFilePath, localInputPath); // Use this.s3Client
                 await new Promise((resolveDownload, rejectDownload) => {
                     downloader.on('error', (err) => {
                         console.error("FFMPEG: S3 download error:", err.stack);
@@ -72,7 +77,7 @@ class FfmpegStrategy {
                                     console.log(`FFMPEG: Finished converting to ${fmt.format}: ${localOutputPath}`);
 
                                     // Upload converted file to S3
-                                    const uploader = s3Client.upload(localOutputPath, s3OutputPath, { ACL: 'public-read' });
+                                    const uploader = this.s3Client.upload(localOutputPath, s3OutputPath, { ACL: 'public-read' }); // Use this.s3Client
                                     await new Promise((resolveUpload, rejectUpload) => {
                                         uploader.on('error', (err) => {
                                             console.error(`FFMPEG: S3 upload error for ${s3OutputPath}:`, err.stack);
@@ -120,7 +125,7 @@ class FfmpegStrategy {
                             .on('end', async () => {
                                 console.log(`FFMPEG: Finished generating thumbnail: ${localThumbnailPath}`);
                                 // Upload thumbnail to S3
-                                const thumbUploader = s3Client.upload(localThumbnailPath, s3ThumbnailPath, { ACL: 'public-read' });
+                                const thumbUploader = this.s3Client.upload(localThumbnailPath, s3ThumbnailPath, { ACL: 'public-read' }); // Use this.s3Client
                                 await new Promise((resolveUpload, rejectUpload) => {
                                     thumbUploader.on('error', (err) => {
                                         console.error(`FFMPEG: S3 thumbnail upload error for ${s3ThumbnailPath}:`, err.stack);
